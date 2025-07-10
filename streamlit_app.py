@@ -104,38 +104,65 @@ else:
         elif pagina_selecionada == "Dashboard":
             st.subheader("📝 Dashboard")
             df = pd.DataFrame(controle.consultar_dados())
-            df['data'] = pd.to_datetime(df['data'])
-            gasto_total = df['valor'].sum()
-            ultimo_dia = df['data'].max()
-            penultimo_dia = df['data'].max() - pd.Timedelta(days=1)
-            gasto_ultimo_dia = df[df['data'] == ultimo_dia]['valor'].sum()
-            gasto_penultimo_dia = df[df['data'] == penultimo_dia]['valor'].sum()
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric(label="Gasto Total", value=f"R$ {gasto_total:.2f}")
-            with col2:
-                st.metric(label=f"Gasto em {ultimo_dia.date()}", value=f"R$ {gasto_ultimo_dia:.2f}")
-            with col3:
-                st.metric(label=f"Gasto em {penultimo_dia.date()}", value=f"R$ {gasto_penultimo_dia:.2f}")
 
-            # Agrupa o valor total por tipo de gasto
-            df_agg = df.groupby('tipo_gasto', as_index=False)['valor'].sum()
+            if df.empty or 'data' not in df.columns or 'valor' not in df.columns:
+                st.warning("Nenhum dado disponível para exibir o dashboard.")
+                st.metric(label="Gasto Total", value="R$ 0.00")
+                st.metric(label="Gasto no último dia", value="R$ 0.00")
+                st.metric(label="Gasto no dia anterior", value="R$ 0.00")
+            else:
+                df['data'] = pd.to_datetime(df['data'])
+                gasto_total = df['valor'].sum()
+                ultimo_dia = df['data'].max()
+                penultimo_dia = df['data'].max() - pd.Timedelta(days=1)
+                gasto_ultimo_dia = df[df['data'] == ultimo_dia]['valor'].sum()
+                gasto_penultimo_dia = df[df['data'] == penultimo_dia]['valor'].sum()
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(label="Gasto Total", value=f"R$ {gasto_total:.2f}")
+                with col2:
+                    st.metric(label=f"Gasto em {ultimo_dia.date()}", value=f"R$ {gasto_ultimo_dia:.2f}")
+                with col3:
+                    st.metric(label=f"Gasto em {penultimo_dia.date()}", value=f"R$ {gasto_penultimo_dia:.2f}")
 
-            # Calcular o ângulo para cada fatia (proporção)
-            df_agg['angle'] = df_agg['valor'] / df_agg['valor'].sum() * 2 * 3.1416
+                # Agrupa o valor total por tipo de gasto
+                df_agg = df.groupby('tipo_gasto', as_index=False)['valor'].sum()
 
-            # Criar gráfico de pizza usando mark_arc
-            chart = alt.Chart(df_agg).mark_arc(innerRadius=50).encode(
-                theta=alt.Theta(field="valor", type="quantitative"),
-                color=alt.Color(field="tipo_gasto", type="nominal"),
-                tooltip=['tipo_gasto', 'valor']
-            ).properties(
-                width=400,
-                height=400,
-                title='Distribuição de Gastos por Tipo'
-            )
+                # Calcular o ângulo para cada fatia (proporção)
+                df_agg['angle'] = df_agg['valor'] / df_agg['valor'].sum() * 2 * 3.1416
 
-            st.altair_chart(chart, use_container_width=True)
+                # Criar gráfico de pizza usando mark_arc
+                chart = alt.Chart(df_agg).mark_arc(innerRadius=50).encode(
+                    theta=alt.Theta(field="valor", type="quantitative"),
+                    color=alt.Color(field="tipo_gasto", type="nominal"),
+                    tooltip=['tipo_gasto', 'valor']
+                ).properties(
+                    width=400,
+                    height=400,
+                    title='Distribuição de Gastos por Tipo'
+                )
+
+                st.altair_chart(chart, use_container_width=True)
+
+                ultimos_30_dias = df[df['data'] >= pd.Timestamp.today() - pd.Timedelta(days=30)]
+                gastos_diarios = (
+                    ultimos_30_dias.groupby('data')['valor']
+                    .sum()
+                    .reset_index()
+                    .sort_values('data')  # ordenado do mais antigo pro mais novo
+                )
+
+                bar_chart = alt.Chart(gastos_diarios).mark_bar().encode(
+                    x=alt.X('data:T', title='Data'),
+                    y=alt.Y('valor:Q', title='Valor (R$)'),
+                    tooltip=['data:T', 'valor:Q']
+                ).properties(
+                    width='container',
+                    height=300,
+                    title='Gastos Diários - Últimos 30 dias'
+                )
+
+                st.altair_chart(bar_chart, use_container_width=True)
                                 
         elif pagina_selecionada == "Sobre":
             st.subheader("ℹ️ Sobre o Projeto")
