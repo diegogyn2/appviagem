@@ -166,4 +166,15 @@ else:
                                 
         elif pagina_selecionada == "Sobre":
             st.subheader("ℹ️ Sobre o Projeto")
-            
+
+            st.markdown("---")
+            st.markdown("""
+            Este assistente foi criado para facilitar o controle de cobranças de forma simples e intuitiva.
+
+            **Funcionalidades:**
+            - Cadastro/Consulta gastos de viagem;
+            - Dashboard acompanhamento Gastos;
+            - Menu lateral retrátil para melhor experiência de uso;
+
+            Desenvolvido por [Diego](https://github.com/diego).
+            """)
